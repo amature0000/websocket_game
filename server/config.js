@@ -1,0 +1,10 @@
+module.exports = {
+  PORT: 3000,
+  MAX_PLAYERS: 10,
+  MIN_PLAYERS: 2,
+  CORS_ORIGIN: "*",
+  BASE_HP: 100,
+  HEAL_AMOUNT: 20,
+  ATTACK_DAMAGE: 25,
+  DEFEND_AMOUNT: 15
+};
