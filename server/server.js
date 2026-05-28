@@ -5,6 +5,7 @@ const { Server } = require('socket.io');
 const CONFIG = require('./config');
 const roomManager = require('./roomManager');
 const { normalizeAction, resolveAction } = require('./actionHandler');
+const deckManager = require('./deckManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -14,77 +15,74 @@ const broadcastToRoom = (roomId, eventName, data) => {
   io.to(roomId).emit(eventName, data);
 };
 
+const sendToPlayer = (s, eventName, data) => {
+  s.emit(eventName, data);
+};
+
+const setTurn = (room, roomId, playerId) => { 
+  if(!room || !room.isStarted || !playerId) return;
+
+  room.currentPlayerId = playerId;
+  deckManager.drawCards(playerId, CONFIG.STARTING_HAND_SIZE);
+  broadcastToRoom(roomId, 'turn_changed', playerId);
+};
+
 io.on('connection', (socket) => {
   console.log(`유저 접속: ${socket.id}`);
 
   // 방 입장
   socket.on('join_room', (roomId) => {
-    if (roomManager.users[socket.id])
-      return socket.emit('system_message', '이미 다른 방에 참가 중입니다.');
+    roomManager.initRoom(roomId);
+    const result = roomManager.addPlayer(roomId, socket.id);
 
-    roomManager.users[socket.id] = roomId;
-    if (!roomManager.rooms[roomId]) {
-      roomManager.rooms[roomId] = { 
-        players: [], 
-        currentPlayerId: null, 
-        isStarted: false 
-      };
+    if (!result.success) {
+      return sendToPlayer(socket, 'system_message', result.message);
     }
 
-    const room = roomManager.rooms[roomId];
-    if (roomManager.getPlayer(socket.id))
-      return socket.emit('system_message', '이미 이 방에 참가 중입니다.');
-    if (room.players.length >= CONFIG.MAX_PLAYERS) 
-      return socket.emit('system_message', `방이 가득 찼습니다. (최대 ${CONFIG.MAX_PLAYERS}명)`);
-
     socket.join(roomId);
-    room.players.push(roomManager.createPlayer(socket.id));
-    console.log(`[방 ${roomId}] 플레이어 등록: ${socket.id}`);
 
-    const isHost = room.players[0].id === socket.id;
-    socket.emit('init_client', { isHost });
+    const room = roomManager.rooms[roomId];
+    const isHost = room.turnOrder[0] === socket.id;
+    sendToPlayer(socket, 'init_client', { isHost });
 
-    broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 입장했습니다. (${room.players.length})`);
+    broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 입장했습니다. (${room.turnOrder.length})`);
   });
 
   // 게임 시작
   socket.on('start_game', (roomId) => {
-    const room = roomManager.rooms[roomId];
-    if (!room) return;
+    const result = roomManager.startRoom(roomId);
 
-    if (room.players.length < CONFIG.MIN_PLAYERS) {
-      return socket.emit('system_message', `게임은 적어도 ${CONFIG.MIN_PLAYERS}명이 모여야 시작할 수 있습니다.`);
+    if (!result.success) {
+      return sendToPlayer(socket, 'system_message', result.message);
     }
 
-    room.isStarted = true;
-    room.currentPlayerId = room.players[0]?.id || null;
-
-    broadcastToRoom(roomId, 'game_started', room.currentPlayerId);
-    broadcastToRoom(roomId, 'system_message', '게임이 시작되었습니다!');
+    const room = roomManager.rooms[roomId];
+    broadcastToRoom(roomId, 'game_started');
+    setTurn(room, roomId, room.currentPlayerId);
   });
 
   // 행동 처리
   socket.on('action', (roomId, actionPayload) => {
     const room = roomManager.rooms[roomId];
-    console.log(roomManager.users, room.currentPlayerId, room?.players?.length);
+    // 유효성 검사
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
-      return socket.emit('system_message', '유효하지 않은 행동입니다.');
+      return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다.');
     }
-
+    // 행동 처리
     const action = normalizeAction(actionPayload);
     const result = resolveAction(socket.id, action);
 
     if (!result.success) {
-      return socket.emit('system_message', result.message);
+      return sendToPlayer(socket, 'system_message', result.message);
     }
 
-    const nextPlayerId = roomManager.advanceTurn(room);
-
+    if (result.type === 'end_turn') {
+      const nextPlayerId = roomManager.advanceTurn(room);
+      setTurn(room, roomId, nextPlayerId);
+      return;
+    }
+    // 결과 전달
     broadcastToRoom(roomId, 'action_result', result);
-    if (nextPlayerId) {
-      broadcastToRoom(roomId, 'turn_changed', nextPlayerId);
-      room.currentPlayerId = nextPlayerId;
-    }
 
     if (result.message) {
       broadcastToRoom(roomId, 'system_message', result.message);
@@ -96,12 +94,11 @@ io.on('connection', (socket) => {
     console.log(`유저 퇴장: ${socket.id}`);
     const roomId = roomManager.users[socket.id];
     const nextPlayerId = roomManager.removePlayer(socket.id);
+    deckManager.removePlayer(socket.id);
     broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);
 
     const room = roomManager.rooms[roomId];
-    if (room?.isStarted && nextPlayerId) {
-      broadcastToRoom(roomId, 'turn_changed', nextPlayerId);
-    }
+    setTurn(room, roomId, nextPlayerId);
   });
 });
 

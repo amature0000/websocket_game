@@ -75,6 +75,7 @@ const resolveAction = (actorId, action) => {
     case 'attack': return handleAttack(actorId, action);
     case 'defend': return handleDefend(actorId, action);
     case 'heal': return handleHeal(actorId, action);
+    case 'end_turn': return {success: true, type: 'end_turn', actorId, message: `${actorId}님이 턴을 종료했습니다.`};
     default: return { success: false, message: '알 수 없는 행동입니다.' };
   }
 };
