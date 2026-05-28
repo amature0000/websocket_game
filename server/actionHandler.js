@@ -1,6 +1,7 @@
 // actionHandler.js
 const CONFIG = require('./config');
 const { getPlayer } = require('./roomManager');
+const deckManager = require('./deckManager');
 
 const applyDamage = (player, amount) => {
   if (!player) return;
@@ -65,9 +66,30 @@ const handleHeal = (actorId, action) => {
   };
 };
 
+const handleSelectCard = (actorId, action) => {
+  const cardIndex = action.cardIndex;
+  if (cardIndex === undefined || cardIndex === null) {
+    return { success: false, message: '카드 인덱스가 지정되지 않았습니다.' };
+  }
+
+  const result = deckManager.selectDiscoveredCard(actorId, cardIndex);
+  
+  if (!result.success) {
+    return result;
+  }
+
+  return {
+    success: true,
+    type: 'select_card',
+    actorId,
+    card: result.card,
+    message: result.message
+  };
+};
+
 const normalizeAction = (payload) => {
   if (typeof payload === 'string') return { type: payload };
-  return { type: payload.type, targetId: payload.targetId, amount: payload.amount };
+  return { type: payload.type, targetId: payload.targetId, amount: payload.amount, cardIndex: payload.cardIndex };
 };
 
 const resolveAction = (actorId, action) => {
@@ -75,6 +97,7 @@ const resolveAction = (actorId, action) => {
     case 'attack': return handleAttack(actorId, action);
     case 'defend': return handleDefend(actorId, action);
     case 'heal': return handleHeal(actorId, action);
+    case 'select_card': return handleSelectCard(actorId, action);
     case 'end_turn': return {success: true, type: 'end_turn', actorId, message: `${actorId}님이 턴을 종료했습니다.`};
     default: return { success: false, message: '알 수 없는 행동입니다.' };
   }

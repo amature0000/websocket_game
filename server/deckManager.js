@@ -99,6 +99,13 @@ const playCard = (playerId, handIndex) => {
 };
 
 /**
+ * 손패 초기화
+ */
+const endTurn = (playerId) => {
+    playerCurrentHand[playerId] = [];
+};
+
+/**
  * 플레이어 제거
  */
 const removePlayer = (playerId) => {
@@ -119,13 +126,13 @@ const getPlayerCardInfo = (playerId) => {
 };
 
 module.exports = {
-    initializePlayer,
     getPlayerCardPool,
     getCurrentHand,
     drawCards,
     discoverCards,
     selectDiscoveredCard,
     playCard,
+    endTurn,
     removePlayer,
     getPlayerCardInfo
 };

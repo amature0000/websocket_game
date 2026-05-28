@@ -133,7 +133,26 @@ const isValidTurn = (room, playerId) => {
 const getRoomInfo = (roomId) => {
   const room = rooms[roomId];
   if (!room) return null;
-  // TODO
+  
+  const playersInfo = room.turnOrder.map(playerId => {
+    const player = room.players[playerId];
+    return {
+      id: player.id,
+      name: player.name,
+      hp: player.hp,
+      maxHp: player.maxHp,
+      defense: player.defense,
+      alive: player.alive
+    };
+  });
+
+  return {
+    roomId,
+    players: playersInfo,
+    currentPlayerId: room.currentPlayerId,
+    isStarted: room.isStarted,
+    turnOrder: room.turnOrder
+  };
 };
 
 /**
