@@ -28,18 +28,20 @@ const sendGameInfos = (roomId) => {
 };
 
 const sendHandInfo = (s) => {
+  if (!s) return;
   const playerHand = deckManager.getPlayerCardInfo(s.id);
   sendToPlayer(s, 'hand_info', playerHand);
 };
 
-const setTurn = (room, roomId, s, playerId) => { 
-  if(!room || !room.isStarted || !s || !playerId) return;
+const setTurn = (room, roomId, playerId) => { 
+  if(!room || !room.isStarted || !playerId) return;
+  console.log(`턴 변경: ${playerId} 차례`);
 
   room.currentPlayerId = playerId;
   deckManager.drawCards(playerId, CONFIG.STARTING_HAND_SIZE);
   deckManager.discoverCards(playerId);
   broadcastToRoom(roomId, 'turn_changed', playerId);
-  sendHandInfo(s);
+  sendHandInfo(io.sockets.sockets.get(playerId));
 };
 
 io.on('connection', (socket) => {
@@ -74,7 +76,7 @@ io.on('connection', (socket) => {
 
     const room = roomManager.rooms[roomId];
     broadcastToRoom(roomId, 'game_started');
-    setTurn(room, roomId, socket, room.currentPlayerId);
+    setTurn(room, roomId, room.currentPlayerId);
   });
 
   // 행동 처리
@@ -95,16 +97,11 @@ io.on('connection', (socket) => {
     if (result.type === 'end_turn') {
       deckManager.endTurn(socket.id);
       const nextPlayerId = roomManager.advanceTurn(room);
-      setTurn(room, roomId, socket, nextPlayerId);
+      setTurn(room, roomId, nextPlayerId);
       return;
     }
-    // 결과 전달
-    broadcastToRoom(roomId, 'action_result', result);
-
-    if (result.message) {
-      broadcastToRoom(roomId, 'system_message', result.message);
-    }
-
+    // TODO: 결과 전달
+    // broadcastToRoom(roomId, 'action_result', result);
     if (result.type === 'select_card') {
       sendHandInfo(socket);
     }
@@ -119,7 +116,7 @@ io.on('connection', (socket) => {
     broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);
 
     const room = roomManager.rooms[roomId];
-    setTurn(room, roomId, socket, nextPlayerId);
+    setTurn(room, roomId, nextPlayerId);
   });
 });
 

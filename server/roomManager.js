@@ -169,10 +169,10 @@ const removePlayer = (playerId) => {
 
   if (index > -1) {
     const removedCurrent = room.currentPlayerId === playerId;
-    console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.players.length})`);
+    console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
 
     // 방이 빈 경우
-    if (room.players.length === 1) {
+    if (room.turnOrder.length === 1) {
       delete rooms[roomId];
       delete users[playerId];
       console.log(`[방 ${roomId}] 방 삭제됨`);
