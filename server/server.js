@@ -19,6 +19,19 @@ const sendToPlayer = (s, eventName, data) => {
   s.emit(eventName, data);
 };
 
+const sendGameInfos = (roomId) => {
+  const room = roomManager.rooms[roomId];
+  if (!room) return;
+
+  const roomInfo = roomManager.getRoomInfo(roomId);
+  broadcastToRoom(roomId, 'room_info', roomInfo);
+};
+
+const sendHandInfo = (playerId) => {
+  const playerHand = deckManager.getPlayerCardInfo(playerId);
+  sendToPlayer(io.sockets.sockets.get(playerId), 'hand_info', playerHand);
+};
+
 const setTurn = (room, roomId, playerId) => { 
   if(!room || !room.isStarted || !playerId) return;
 
@@ -31,9 +44,9 @@ io.on('connection', (socket) => {
   console.log(`유저 접속: ${socket.id}`);
 
   // 방 입장
-  socket.on('join_room', (roomId) => {
+  socket.on('join_room', (roomId, nickname) => {
     roomManager.initRoom(roomId);
-    const result = roomManager.addPlayer(roomId, socket.id);
+    const result = roomManager.addPlayer(roomId, socket.id, nickname);
 
     if (!result.success) {
       return sendToPlayer(socket, 'system_message', result.message);
@@ -45,12 +58,13 @@ io.on('connection', (socket) => {
     const isHost = room.turnOrder[0] === socket.id;
     sendToPlayer(socket, 'init_client', { isHost });
 
-    broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 입장했습니다. (${room.turnOrder.length})`);
+    const player = roomManager.getPlayer(socket.id);
+    broadcastToRoom(roomId, 'system_message', `${player.name} 님이 입장했습니다. (${room.turnOrder.length}명)`);
   });
 
   // 게임 시작
   socket.on('start_game', (roomId) => {
-    const result = roomManager.startRoom(roomId);
+    const result = roomManager.startRoom(roomId, socket.id);
 
     if (!result.success) {
       return sendToPlayer(socket, 'system_message', result.message);
