@@ -27,10 +27,9 @@ const sendGameInfos = (roomId) => {
   broadcastToRoom(roomId, 'room_info', roomInfo);
 };
 
-const sendHandInfo = (s) => {
-  if (!s) return;
-  const playerHand = deckManager.getPlayerCardInfo(s.id);
-  sendToPlayer(s, 'hand_info', playerHand);
+const sendHandInfo = (playerId) => {
+  const playerHand = deckManager.getPlayerCardInfo(playerId);
+  io.to(playerId).emit('hand_info', playerHand);
 };
 
 const setTurn = (room, roomId, playerId) => { 
@@ -41,7 +40,7 @@ const setTurn = (room, roomId, playerId) => {
   deckManager.drawCards(playerId, CONFIG.STARTING_HAND_SIZE);
   deckManager.discoverCards(playerId);
   broadcastToRoom(roomId, 'turn_changed', playerId);
-  sendHandInfo(io.sockets.sockets.get(playerId));
+  sendHandInfo(playerId);
 };
 
 io.on('connection', (socket) => {
@@ -93,17 +92,21 @@ io.on('connection', (socket) => {
     if (!result.success) {
       return sendToPlayer(socket, 'system_message', result.message);
     }
-
+    // 액션 결과 브로드캐스트
+    const roomInfo = roomManager.getRoomInfo(roomId);
+    broadcastToRoom(roomId, 'action_result', {
+      action: result,
+      roomInfo: roomInfo
+    });
+    // 카드 선택 시 hand info 업데이트
+    if (result.type === 'select_card') {
+      sendHandInfo(socket.id);
+    }
+    // 턴 종료
     if (result.type === 'end_turn') {
       deckManager.endTurn(socket.id);
       const nextPlayerId = roomManager.advanceTurn(room);
       setTurn(room, roomId, nextPlayerId);
-      return;
-    }
-    // TODO: 결과 전달
-    // broadcastToRoom(roomId, 'action_result', result);
-    if (result.type === 'select_card') {
-      sendHandInfo(socket);
     }
   });
 

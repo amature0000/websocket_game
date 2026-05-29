@@ -93,8 +93,7 @@ const playCard = (playerId, handIndex) => {
 
     return {
         success: true,
-        card: playedCard,
-        message: `카드 "${playedCard.name}"을(를) 플레이했습니다!`
+        card: playedCard
     };
 };
 
