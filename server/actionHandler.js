@@ -34,7 +34,7 @@ const playCardEffect = (actorId, playedCard, targetId) => {
 
   const cardId = playedCard.id;
 
-  const result = {success: true, type: 'play_card', playedCard, targetId};
+  const result = { success: true, type: 'play_card', playedCard, targetId };
   const effects = {};
 
   if (playedCard.type === 'ATTACK') {
@@ -45,26 +45,22 @@ const playCardEffect = (actorId, playedCard, targetId) => {
     // TODO: 명중률 보정 필요
     const damage = playedCard.value;
     applyDamage(target, damage);
-    
-    switch (cardId) {
-      case 'atk_suppress':
-        // 대상이 다음 턴 카드 드로우 -1
-        effects.target_draw += -1;
-        break;
-      case 'atk_throw':
-        // 액터가 카드 1장 추가 드로우
-        effects.actor_draw += 1;
-        break;
-      case 'atk_tracer':
-        // 액터의 다음 공격 카드 명중
-        effects.actor_range = 999;
-        break;
-    }
   }
-  else if (playedCard.type === 'SKILL') {
-    // TODO
+  // TODO: switch문으로 판별하지 말고, cardData.CARDS의 effect 필드 사용
+  switch (cardId) {
+    case 'atk_suppress':
+      // 대상이 다음 턴 카드 드로우 -1
+      effects.target_draw += -1;
+      break;
+    case 'atk_throw':
+      // 액터가 카드 1장 추가 드로우
+      effects.actor_draw += 1;
+      break;
+    case 'atk_tracer':
+      // 액터의 다음 공격 카드 명중
+      effects.actor_range = 999;
+      break;
   }
-
   result.effects = Object.entries(effects);
   return result;
 };
@@ -76,7 +72,7 @@ const handleSelectCard = (actorId, action) => {
   }
 
   const result = deckManager.selectDiscoveredCard(actorId, cardIndex);
-  
+
   if (!result.success) {
     return result;
   }
@@ -92,10 +88,10 @@ const handleSelectCard = (actorId, action) => {
 
 const normalizeAction = (payload) => {
   if (typeof payload === 'string') return { type: payload };
-  return { 
-    type: payload.type, 
+  return {
+    type: payload.type,
     targetId: payload.targetId,
-    amount: payload.amount, 
+    amount: payload.amount,
     cardIndex: payload.cardIndex, // 카드 선택 인덱스
     handIndex: payload.handIndex // 카드 플레이 인덱스
   };
@@ -114,11 +110,11 @@ const resolveAction = (actorId, action) => {
       }
       return playCardEffect(actorId, playedCardResult.card, action.targetId);
     }
-    case 'select_card': 
+    case 'select_card':
       return handleSelectCard(actorId, action);
-    case 'end_turn': 
+    case 'end_turn':
       return { success: true, type: 'end_turn', actorId, message: `${actorId} 턴 종료` };
-    default: 
+    default:
       return { success: false, message: '알 수 없는 행동입니다.' };
   }
 };

@@ -98,10 +98,8 @@ io.on('connection', (socket) => {
       action: result,
       roomInfo: roomInfo
     });
-    // 카드 선택 시 hand info 업데이트
-    if (result.type === 'select_card') {
-      sendHandInfo(socket.id);
-    }
+    // hand info 업데이트
+    sendHandInfo(socket.id);
     // 턴 종료
     if (result.type === 'end_turn') {
       deckManager.endTurn(socket.id);

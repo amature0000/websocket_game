@@ -119,10 +119,6 @@ const removePlayer = (playerId) => {
  * 플레이어의 전체 카드 정보 조회
  */
 const getPlayerCardInfo = (playerId) => {
-    // console.log(`playerId: ${playerId}`);
-    // console.log(playerDeck[playerId]);
-    // console.log(getCurrentHand(playerId));
-    // console.log(playerDiscoveringCards[playerId]);
     return {
         cardPool: playerDeck[playerId],
         currentHand: playerCurrentHand[playerId],
