@@ -27,11 +27,21 @@ const initializePlayer = (playerId) => {
 const drawCards = (playerId, amount) => {
     initializePlayer(playerId);
 
+    const { getPlayer } = require('./roomManager');
+    const player = getPlayer(playerId);
+    
+    // TODO: 호출할때 계산하는게 좀 더 나을듯
+    let drawAmount = amount;
+    if (player && player.pendingEffects && player.pendingEffects.draw) {
+        drawAmount += player.pendingEffects.draw;
+        player.pendingEffects.draw = 0;
+    }
+
     const deck = playerDeckThisRound[playerId];
-    const drawAmount = Math.min(amount, deck.length);
+    const finalDrawAmount = Math.min(drawAmount, deck.length);
 
     const newHand = [];
-    for (let i = 0; i < drawAmount; i++) {
+    for (let i = 0; i < finalDrawAmount; i++) {
         const randomIndex = Math.floor(Math.random() * deck.length);
         newHand.push(deck[randomIndex]);
         deck.splice(randomIndex, 1);
@@ -103,6 +113,12 @@ const playCard = (playerId, handIndex) => {
 const endTurn = (playerId) => {
     playerCurrentHand[playerId] = [];
     playerDeckThisRound[playerId] = [...playerDeck[playerId]];
+    
+    const { getPlayer } = require('./roomManager');
+    const player = getPlayer(playerId);
+    if (player) {
+        player.pendingEffects = {};
+    }
 };
 
 /**

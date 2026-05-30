@@ -12,7 +12,9 @@ const initRoom = (roomId) => {
       players: {},
       turnOrder: [],
       currentPlayerId: null,
-      isStarted: false
+      isStarted: false,
+      alive: true,
+      pendingEffects: {}
     };
   }
 };

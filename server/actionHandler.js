@@ -26,42 +26,66 @@ const applyHeal = (player, amount) => {
   player.hp = Math.min(player.hp + amount, player.maxHp);
 };
 
+const applyEffects = (actor, target, effectObj) => {
+  if (!effectObj) return;
+
+  if (effectObj.actor_defense) {
+    applyDefense(actor, effectObj.actor_defense);
+  }
+  if (effectObj.target_defense) {
+    applyDefense(target, effectObj.target_defense);
+  }
+
+  if (effectObj.actor_heal) {
+    applyHeal(actor, effectObj.actor_heal);
+  }
+  if (effectObj.target_heal) {
+    applyHeal(target, effectObj.target_heal);
+  }
+
+  if (effectObj.actor_draw) {
+    // TODO: 이번 턴에 적용으로 변경
+    actor.pendingEffects.draw = (actor.pendingEffects.draw || 0) + effectObj.actor_draw;
+  }
+  if (effectObj.target_draw) {
+    target.pendingEffects.draw = (target.pendingEffects.draw || 0) + effectObj.target_draw;
+  }
+
+
+  if (effectObj.actor_range) {
+    // TODO: 이번 턴에 적용으로 변경
+    actor.pendingEffects.range = effectObj.actor_range;
+  }
+  if (effectObj.target_range) {
+    target.pendingEffects.range = effectObj.target_range;
+  }
+
+  if (effectObj.actor_discard) {
+    actor.pendingEffects.discard = (actor.pendingEffects.discard || 0) + effectObj.actor_discard;
+  }
+};
+
 // ============
 
 const playCardEffect = (actorId, playedCard, targetId) => {
   const actor = getPlayer(actorId);
-  if (!actor) return { success: false, message: '플레이어를 찾을 수 없습니다.' };
+  const target = getPlayer(targetId);
+  if (!actor || !target) return { success: false, message: '플레이어를 찾을 수 없습니다.' };
 
-  const cardId = playedCard.id;
-
-  const result = { success: true, type: 'play_card', playedCard, targetId };
-  const effects = {};
+  const result = { success: true, type: 'play_card', playedCard, actorId, targetId };
 
   if (playedCard.type === 'ATTACK') {
     if (!targetId) return { success: false, message: '공격 대상을 지정해야 합니다.' };
-    const target = getPlayer(targetId);
     if (!target) return { success: false, message: '공격 대상을 찾을 수 없습니다.' };
 
     // TODO: 명중률 보정 필요
     const damage = playedCard.value;
     applyDamage(target, damage);
   }
-  // TODO: switch문으로 판별하지 말고, cardData.CARDS의 effect 필드 사용
-  switch (cardId) {
-    case 'atk_suppress':
-      // 대상이 다음 턴 카드 드로우 -1
-      effects.target_draw += -1;
-      break;
-    case 'atk_throw':
-      // 액터가 카드 1장 추가 드로우
-      effects.actor_draw += 1;
-      break;
-    case 'atk_tracer':
-      // 액터의 다음 공격 카드 명중
-      effects.actor_range = 999;
-      break;
+  if (playedCard.effect) {
+    applyEffects(actor, target, playedCard.effect);
   }
-  result.effects = Object.entries(effects);
+
   return result;
 };
 
