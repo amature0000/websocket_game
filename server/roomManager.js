@@ -88,6 +88,7 @@ const getPlayer = (playerId) => {
 /**
  * 다음 살아있는 플레이어 아이디 조회
  */
+// TODO: alive 상태가 false인 경우 turnOrder에서 제거하는 방식으로 변경
 const getNextAlivePlayerId = (room, fromPlayerId) => {
   if (!room || !room.players || room.players.length === 0) return null;
 

@@ -1,9 +1,10 @@
 const { CARDS, getRandomCards, getCardById } = require('./cardData');
+const { getPlayer } = require('./roomManager');
 
-const playerDeck = {};
-const playerDeckThisRound = {};
-const playerCurrentHand = {};
-const playerDiscoveringCards = {};
+const playerDeck = {}; // 플레이어 덱
+const playerDeckThisRound = {}; // 플레이어 덱(드로우한 카드 제외)
+const playerCurrentHand = {}; // 플레이어 손패
+const playerDiscoveringCards = {}; // 카드 발견 제시
 
 /**
  * 플레이어 초기화
@@ -18,7 +19,6 @@ const initializePlayer = (playerId) => {
     if (!playerDeckThisRound[playerId]) {
         playerDeckThisRound[playerId] = [...playerDeck[playerId]];
     }
-    // console.log(playerDeck[playerId]);
 };
 
 /**
@@ -27,26 +27,31 @@ const initializePlayer = (playerId) => {
 const drawCards = (playerId, amount) => {
     initializePlayer(playerId);
 
-    const { getPlayer } = require('./roomManager');
     const player = getPlayer(playerId);
+    if (!player) return [];
     
-    // TODO: 호출할때 계산하는게 좀 더 나을듯
-    let drawAmount = amount;
-    if (player && player.pendingEffects && player.pendingEffects.draw) {
-        drawAmount += player.pendingEffects.draw;
-        player.pendingEffects.draw = 0;
+    // pendingEffects 계산
+    let drawAmount = amount + (player.pendingEffects?.draw || 0);
+    if (player.pendingEffects?.draw) {
+        delete player.pendingEffects.draw;
     }
 
     const deck = playerDeckThisRound[playerId];
     const finalDrawAmount = Math.min(drawAmount, deck.length);
+    if (finalDrawAmount <= 0) return [];
 
-    const newHand = [];
+    const newHand = new Array(finalDrawAmount);
     for (let i = 0; i < finalDrawAmount; i++) {
+        const lastIndex = deck.length - 1;
         const randomIndex = Math.floor(Math.random() * deck.length);
-        newHand.push(deck[randomIndex]);
-        deck.splice(randomIndex, 1);
+
+        newHand[i] = deck[randomIndex];
+        deck[randomIndex] = deck[lastIndex];
+        deck.pop();
     }
-    playerCurrentHand[playerId] = newHand;
+
+    const currentHand = playerCurrentHand[playerId];
+    playerCurrentHand[playerId] = [...currentHand, ...newHand];
 
     return newHand;
 };

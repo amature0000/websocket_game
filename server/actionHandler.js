@@ -29,39 +29,36 @@ const applyHeal = (player, amount) => {
 const applyEffects = (actor, target, effectObj) => {
   if (!effectObj) return;
 
-  if (effectObj.actor_defense) {
+  if (effectObj.actor_defense != null) {
     applyDefense(actor, effectObj.actor_defense);
   }
-  if (effectObj.target_defense) {
+  if (effectObj.target_defense != null) {
     applyDefense(target, effectObj.target_defense);
   }
 
-  if (effectObj.actor_heal) {
+  if (effectObj.actor_heal != null) {
     applyHeal(actor, effectObj.actor_heal);
   }
-  if (effectObj.target_heal) {
+  if (effectObj.target_heal != null) {
     applyHeal(target, effectObj.target_heal);
   }
 
-  if (effectObj.actor_draw) {
-    // TODO: 이번 턴에 적용으로 변경
-    actor.pendingEffects.draw = (actor.pendingEffects.draw || 0) + effectObj.actor_draw;
+  if (effectObj.actor_draw != null) {
+    deckManager.drawCards(actor.id, effectObj.actor_draw);
   }
-  if (effectObj.target_draw) {
-    target.pendingEffects.draw = (target.pendingEffects.draw || 0) + effectObj.target_draw;
+  if (effectObj.target_draw != null) {
+    target.pendingEffects.draw += effectObj.target_draw;
   }
 
-
-  if (effectObj.actor_range) {
-    // TODO: 이번 턴에 적용으로 변경
+  if (effectObj.actor_range != null) {
     actor.pendingEffects.range = effectObj.actor_range;
   }
-  if (effectObj.target_range) {
+  if (effectObj.target_range != null) {
     target.pendingEffects.range = effectObj.target_range;
   }
 
-  if (effectObj.actor_discard) {
-    actor.pendingEffects.discard = (actor.pendingEffects.discard || 0) + effectObj.actor_discard;
+  if (effectObj.actor_discard != null) {
+    actor.pendingEffects.discard += effectObj.actor_discard;
   }
 };
 
@@ -79,6 +76,7 @@ const playCardEffect = (actorId, playedCard, targetId) => {
     if (!target) return { success: false, message: '공격 대상을 찾을 수 없습니다.' };
 
     // TODO: 명중률 보정 필요
+    // TODO: pendingEffects 계산
     const damage = playedCard.value;
     applyDamage(target, damage);
   }
