@@ -36,6 +36,9 @@ const createPlayer = (id, nickname) => ({
  */
 const addPlayer = (roomId, playerId, nickname) => {
   const room = rooms[roomId];
+  if (!room) {
+    return { success: false, message: '방이 존재하지 않습니다.' };
+  }
   if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) {
     return { success: false, message: `방이 가득 찼습니다. (최대 ${CONFIG.MAX_PLAYERS}명)` };
   }
@@ -86,27 +89,15 @@ const getPlayer = (playerId) => {
 };
 
 /**
- * 다음 살아있는 플레이어 아이디 조회
+ * 다음 턴 플레이어 아이디 조회
  */
-// TODO: alive 상태가 false인 경우 turnOrder에서 제거하는 방식으로 변경
-const getNextAlivePlayerId = (room, fromPlayerId) => {
-  if (!room || !room.players || room.players.length === 0) return null;
+const getNextTurnPlayerId = (room, fromPlayerId) => {
+  if (!room || room.turnOrder.length === 0) return null;
 
   const startIndex = room.turnOrder.findIndex((id) => id === fromPlayerId);
+  if (startIndex === -1) return null;
   const total = room.turnOrder.length;
-  const baseIndex = startIndex >= 0 ? startIndex : 0;
-
-  for (let i = 1; i <= total; i += 1) {
-    const nextIndex = (baseIndex + i) % total;
-    const nextPlayerId = room.turnOrder[nextIndex];
-    
-    const nextPlayer = room.players[nextPlayerId];
-    if (nextPlayer && nextPlayer.alive) {
-      return nextPlayer.id;
-    }
-  }
-
-  return null;
+  return room.turnOrder[(startIndex + 1) % total];
 };
 
 /**
@@ -115,7 +106,7 @@ const getNextAlivePlayerId = (room, fromPlayerId) => {
 const advanceTurn = (room) => {
   if (!room || !room.players || room.players.length === 0) return null;
   const currentPlayerId = room.currentPlayerId;
-  const nextPlayerId = getNextAlivePlayerId(room, currentPlayerId);
+  const nextPlayerId = getNextTurnPlayerId(room, currentPlayerId);
   return nextPlayerId;
 };
 
@@ -165,32 +156,28 @@ const removePlayer = (playerId) => {
   const roomId = users[playerId];
   if (!roomId) return null;
   const room = rooms[roomId];
-  if (!room) return null;
-
-  const index = room.turnOrder.findIndex((id) => id === playerId);
-  let nextPlayerId = null;
-
-  if (index > -1) {
-    const removedCurrent = room.currentPlayerId === playerId;
-    console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
-
-    // 방이 빈 경우
-    if (room.turnOrder.length === 1) {
-      delete rooms[roomId];
-      delete users[playerId];
-      console.log(`[방 ${roomId}] 방 삭제됨`);
-      return null;
-    }
-    // 현재 턴일 때 종료한 경우
-    if (removedCurrent) {
-      nextPlayerId = getNextAlivePlayerId(room, playerId);
-      room.currentPlayerId = nextPlayerId;
-    }
-    
-    delete room.players[playerId];
-    room.turnOrder.splice(index, 1);
+  if (!room) {
+    delete users[playerId];
+    return null;
   }
-
+  // 플레이어가 한 명 남았다면 방 삭제
+  if (room.turnOrder.length <= 1) {
+    delete rooms[roomId];
+    delete users[playerId];
+    console.log(`[방 ${roomId}] 삭제됨`);
+    return null;
+  }
+  // 플레이어 제거 전 턴 처리
+  const removedCurrent = room.currentPlayerId === playerId;
+  let nextPlayerId = null;
+  if (removedCurrent) {
+    nextPlayerId = getNextTurnPlayerId(room, playerId);
+    room.currentPlayerId = nextPlayerId;
+  }
+  // 플레이어 제거
+  console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
+  room.turnOrder = room.turnOrder.filter(id => id !== playerId);
+  delete room.players[playerId];
   delete users[playerId];
   return nextPlayerId;
 };
