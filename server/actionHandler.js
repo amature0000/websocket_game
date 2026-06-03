@@ -67,13 +67,13 @@ const applyEffects = (actor, target, effectObj) => {
 const playCardEffect = (actorId, playedCard, targetId) => {
   const actor = getPlayer(actorId);
   const target = getPlayer(targetId);
-  if (!actor || !target) return { success: false, message: '플레이어를 찾을 수 없습니다.' };
+  if (!actor || !target) return null;
 
   const result = { success: true, type: 'play_card', playedCard, actorId, targetId };
 
   if (playedCard.type === 'ATTACK') {
-    if (!targetId) return { success: false, message: '공격 대상을 지정해야 합니다.' };
-    if (!target) return { success: false, message: '공격 대상을 찾을 수 없습니다.' };
+    if (!targetId) return null;
+    if (!target) return null;
 
     // TODO: 명중률 보정 필요
     // TODO: pendingEffects 계산
@@ -90,21 +90,20 @@ const playCardEffect = (actorId, playedCard, targetId) => {
 const handleSelectCard = (actorId, action) => {
   const cardIndex = action.cardIndex;
   if (cardIndex === undefined || cardIndex === null) {
-    return { success: false, message: '카드 인덱스가 지정되지 않았습니다.' };
+    return null;
   }
 
   const result = deckManager.selectDiscoveredCard(actorId, cardIndex);
 
-  if (!result.success) {
-    return result;
+  if (result === null) {
+    return null;
   }
 
   return {
     success: true,
     type: 'select_card',
     actorId,
-    card: result.card,
-    message: result.message
+    card: result.card
   };
 };
 
@@ -123,21 +122,21 @@ const resolveAction = (actorId, action) => {
   switch (action.type) {
     case 'play_card': {
       const handIndex = action.handIndex;
-      if (handIndex === undefined || handIndex === null) {
-        return { success: false, message: '카드 인덱스가 지정되지 않았습니다.' };
+      if (handIndex == null) {
+        return null;
       }
       const playedCardResult = deckManager.playCard(actorId, handIndex);
-      if (!playedCardResult.success) {
-        return playedCardResult;
+      if (playedCardResult === null) {
+        return null;
       }
       return playCardEffect(actorId, playedCardResult.card, action.targetId);
     }
     case 'select_card':
       return handleSelectCard(actorId, action);
     case 'end_turn':
-      return { success: true, type: 'end_turn', actorId, message: `${actorId} 턴 종료` };
+      return { success: true, type: 'end_turn', actorId };
     default:
-      return { success: false, message: '알 수 없는 행동입니다.' };
+      return null;
   }
 };
 
