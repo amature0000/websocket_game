@@ -27,12 +27,12 @@ const sendGameInfos = (roomId) => {
   const roomInfo = roomManager.getRoomInfo(roomId);
   broadcastToRoom(roomId, 'room_info', roomInfo);
 };
-
+// playerId를 입력받는 이유: 현재 턴이 아닌 플레이어에게 정보를 넘겨야 해서
 const sendHandInfo = (playerId) => {
   const playerHand = deckManager.getPlayerCardInfo(playerId);
   io.to(playerId).emit('hand_info', playerHand);
 };
-
+// playerId를 입력받는 이유
 const setTurn = (room, roomId, playerId) => { 
   if(!room || !room.isStarted || !playerId) return;
   console.log(`턴 변경: ${playerId} 차례`);
@@ -113,7 +113,7 @@ io.on('connection', (socket) => {
   // 연결 종료
   socket.on('disconnect', () => {
     console.log(`유저 퇴장: ${socket.id}`);
-    const roomId = roomManager.users[socket.id];
+    const roomId = roomManager.getPlayer(socket.id)?.roomId;
     const nextPlayerId = roomManager.removePlayer(socket.id);
     deckManager.removePlayer(socket.id);
     broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);

@@ -1,6 +1,7 @@
 const { CARDS, getRandomCards, getCardById } = require('./cardData');
 const { getPlayer } = require('./roomManager');
 
+// [player] => { masterDeck, toDraw, hand, discovering }
 const playerDeckState = new Map();
 
 const initialDeck = [
@@ -74,12 +75,12 @@ const discoverCards = (playerId) => {
 const selectDiscoveredCard = (playerId, cardIndex) => {
     const state = playerDeckState.get(playerId);
     if (!state) return null;
-
+    // 유효성 검사
     const discovering = state.discovering;
     if (!discovering || cardIndex < 0 || cardIndex >= discovering.length) {
         return null;
     }
-
+    // 카드 추가
     const selectedCard = discovering[cardIndex];
     state.masterDeck.push(selectedCard);
     state.drawPile.push(selectedCard);
@@ -97,7 +98,7 @@ const selectDiscoveredCard = (playerId, cardIndex) => {
 const playCard = (playerId, handIndex) => {
     const state = playerDeckState.get(playerId);
     if (!state) return null;
-
+    // 유효성 검사
     const hand = state.hand;
     if (handIndex < 0 || handIndex >= hand.length) {
         return null;

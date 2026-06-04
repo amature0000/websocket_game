@@ -1,7 +1,7 @@
 const CONFIG = require('./config');
 
 const rooms = {};
-const users = {};
+const globalUsers = {};
 
 /**
  * 방 초기화
@@ -22,8 +22,9 @@ const initRoom = (roomId) => {
 /**
  * 플레이어 초기화
  */
-const createPlayer = (id, nickname) => ({
+const createPlayer = (id, nickname, roomId) => ({
   id,
+  roomId,
   name: nickname,
   hp: CONFIG.BASE_HP,
   maxHp: CONFIG.BASE_HP,
@@ -36,27 +37,23 @@ const createPlayer = (id, nickname) => ({
  */
 const addPlayer = (roomId, playerId, nickname) => {
   const room = rooms[roomId];
-  if (!room) {
-    return { success: false, message: '방이 존재하지 않습니다.' };
-  }
-  if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) {
-    return { success: false, message: `방이 가득 찼습니다. (최대 ${CONFIG.MAX_PLAYERS}명)` };
-  }
-  if (users[playerId]) {
+  if (!room) return { success: false, message: '방이 존재하지 않습니다.' };
+  if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: '방이 가득 찼습니다.' };
+  
+  if (globalUsers[playerId]) {
     return { success: false, message: '이미 방에 참가 중입니다.' };
   }
-  if (!nickname || nickname.trim() === '') {
-    return { success: false, message: '닉네임을 입력해주세요.' };
-  }
+  if (!nickname || nickname.trim() === '') return { success: false, message: '닉네임을 입력해주세요.' };
   
-  users[playerId] = roomId;
-  room.players[playerId] = createPlayer(playerId, nickname);
+  const newPlayer = createPlayer(playerId, nickname, roomId);
+  room.players[playerId] = newPlayer;
+  globalUsers[playerId] = newPlayer;
+  
   room.turnOrder.push(playerId);
   console.log(`[방 ${roomId}] 플레이어 등록: ${playerId} (닉네임: ${nickname})`);
 
-  return { success: true};
+  return { success: true };
 };
-
 /***
  * 게임 시작
  */
@@ -81,11 +78,7 @@ const startRoom = (roomId, hostId) => {
  * id로 플레이어 조회
  */
 const getPlayer = (playerId) => {
-  const roomId = users[playerId];
-  if (!roomId) return null;
-  const room = rooms[roomId];
-  if (!room) return null;
-  return room.players[playerId] || null;
+  return globalUsers[playerId] || null;
 };
 
 /**
@@ -104,7 +97,7 @@ const getNextTurnPlayerId = (room, fromPlayerId) => {
  * 턴 진행
  */
 const advanceTurn = (room) => {
-  if (!room || !room.players || room.players.length === 0) return null;
+  if (!room || room.turnOrder.length === 0) return null;
   const currentPlayerId = room.currentPlayerId;
   const nextPlayerId = getNextTurnPlayerId(room, currentPlayerId);
   return nextPlayerId;
@@ -149,21 +142,21 @@ const getRoomInfo = (roomId) => {
   };
 };
 
-/**
- * 방에서 플레이어 제거
- */
 const removePlayer = (playerId) => {
-  const roomId = users[playerId];
-  if (!roomId) return null;
+  const player = globalUsers[playerId];
+  if (!player) return null;
+  
+  const roomId = player.roomId;
   const room = rooms[roomId];
+  // 방이 없으면 유저 정보 삭제
   if (!room) {
-    delete users[playerId];
+    delete globalUsers[playerId];
     return null;
   }
   // 플레이어가 한 명 남았다면 방 삭제
   if (room.turnOrder.length <= 1) {
+    delete globalUsers[playerId];
     delete rooms[roomId];
-    delete users[playerId];
     console.log(`[방 ${roomId}] 삭제됨`);
     return null;
   }
@@ -178,13 +171,13 @@ const removePlayer = (playerId) => {
   console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
   room.turnOrder = room.turnOrder.filter(id => id !== playerId);
   delete room.players[playerId];
-  delete users[playerId];
+  delete globalUsers[playerId];
+
   return nextPlayerId;
 };
 
 module.exports = {
   rooms,
-  users,
   initRoom,
   addPlayer,
   startRoom,
