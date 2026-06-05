@@ -1,21 +1,21 @@
 const CONFIG = require('./config');
 
-const rooms = {};
-const globalUsers = {};
+const rooms = new Map();
+const globalUsers = new Map();
 
 /**
  * 방 초기화
  */
 const initRoom = (roomId) => {
-  if (!rooms[roomId]) {
-    rooms[roomId] = {
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, {
       players: {},
       turnOrder: [],
       currentPlayerId: null,
       isStarted: false,
       alive: true,
       pendingEffects: {}
-    };
+    });
   }
 };
 
@@ -36,18 +36,18 @@ const createPlayer = (id, nickname, roomId) => ({
  * 방에 플레이어 추가
  */
 const addPlayer = (roomId, playerId, nickname) => {
-  const room = rooms[roomId];
+  const room = rooms.get(roomId);
   if (!room) return { success: false, message: '방이 존재하지 않습니다.' };
   if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: '방이 가득 찼습니다.' };
   
-  if (globalUsers[playerId]) {
+  if (globalUsers.has(playerId)) {
     return { success: false, message: '이미 방에 참가 중입니다.' };
   }
   if (!nickname || nickname.trim() === '') return { success: false, message: '닉네임을 입력해주세요.' };
   
   const newPlayer = createPlayer(playerId, nickname, roomId);
   room.players[playerId] = newPlayer;
-  globalUsers[playerId] = newPlayer;
+  globalUsers.set(playerId, newPlayer);
   
   room.turnOrder.push(playerId);
   console.log(`[방 ${roomId}] 플레이어 등록: ${playerId} (닉네임: ${nickname})`);
@@ -58,7 +58,7 @@ const addPlayer = (roomId, playerId, nickname) => {
  * 게임 시작
  */
 const startRoom = (roomId, hostId) => {
-  const room = rooms[roomId];
+  const room = rooms.get(roomId);
   if (!room) return { success: false, message: '방이 존재하지 않습니다.' };
   if (room.isStarted) return { success: false, message: '이미 시작된 방입니다.' };
   if (room.turnOrder.length < CONFIG.MIN_PLAYERS) {
@@ -78,8 +78,12 @@ const startRoom = (roomId, hostId) => {
  * id로 플레이어 조회
  */
 const getPlayer = (playerId) => {
-  return globalUsers[playerId] || null;
+  return globalUsers.get(playerId) || null;
 };
+
+const getRoom = (roomId) => {
+  return rooms.get(roomId) || null;
+}
 
 /**
  * 다음 턴 플레이어 아이디 조회
@@ -118,7 +122,7 @@ const isValidTurn = (room, playerId) => {
  * 게임 정보 조회 - 플레이어 체력 등
  */
 const getRoomInfo = (roomId) => {
-  const room = rooms[roomId];
+  const room = rooms.get(roomId);
   if (!room) return null;
   
   const playersInfo = room.turnOrder.map(playerId => {
@@ -143,20 +147,20 @@ const getRoomInfo = (roomId) => {
 };
 
 const removePlayer = (playerId) => {
-  const player = globalUsers[playerId];
+  const player = globalUsers.get(playerId);
   if (!player) return null;
   
   const roomId = player.roomId;
-  const room = rooms[roomId];
+  const room = rooms.get(roomId);
   // 방이 없으면 유저 정보 삭제
   if (!room) {
-    delete globalUsers[playerId];
+    globalUsers.delete(playerId);
     return null;
   }
   // 플레이어가 한 명 남았다면 방 삭제
   if (room.turnOrder.length <= 1) {
-    delete globalUsers[playerId];
-    delete rooms[roomId];
+    globalUsers.delete(playerId);
+    rooms.delete(roomId);
     console.log(`[방 ${roomId}] 삭제됨`);
     return null;
   }
@@ -171,17 +175,17 @@ const removePlayer = (playerId) => {
   console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
   room.turnOrder = room.turnOrder.filter(id => id !== playerId);
   delete room.players[playerId];
-  delete globalUsers[playerId];
+  globalUsers.delete(playerId);
 
   return nextPlayerId;
 };
 
 module.exports = {
-  rooms,
   initRoom,
   addPlayer,
   startRoom,
   getPlayer,
+  getRoom,
   advanceTurn,
   isValidTurn,
   getRoomInfo,

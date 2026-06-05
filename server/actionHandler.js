@@ -107,17 +107,6 @@ const handleSelectCard = (actorId, action) => {
   };
 };
 
-const normalizeAction = (payload) => {
-  if (typeof payload === 'string') return { type: payload };
-  return {
-    type: payload.type,
-    targetId: payload.targetId,
-    amount: payload.amount,
-    cardIndex: payload.cardIndex, // 카드 선택 인덱스
-    handIndex: payload.handIndex // 카드 플레이 인덱스
-  };
-};
-
 const resolveAction = (actorId, action) => {
   switch (action.type) {
     case 'play_card': {
@@ -140,4 +129,4 @@ const resolveAction = (actorId, action) => {
   }
 };
 
-module.exports = { normalizeAction, resolveAction };
+module.exports = resolveAction;

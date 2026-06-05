@@ -12,7 +12,7 @@ const initialDeck = [
 /**
  * 플레이어 초기화
  */
-const initializePlayer = (playerId) => {
+const initializePlayerDeck = (playerId) => {
     if (!playerDeckState.has(playerId)) {
         playerDeckState.set(playerId, {
             mainDeck: [...initialDeck], 
@@ -27,7 +27,7 @@ const initializePlayer = (playerId) => {
  * 덱에서 랜덤하게 n장을 드로우해서 손패로 저장
  */
 const drawCards = (playerId, amount) => {
-    initializePlayer(playerId);
+    initializePlayerDeck(playerId);
 
     const player = getPlayer(playerId);
     if (!player) return [];
@@ -61,7 +61,7 @@ const drawCards = (playerId, amount) => {
  * 카드 발견: 카드 풀에서 3장의 랜덤 카드를 플레이어에게 제시
  */
 const discoverCards = (playerId) => {
-    initializePlayer(playerId);
+    initializePlayerDeck(playerId);
 
     const discoveredCards = getRandomCards(3);
     playerDeckState.get(playerId).discovering = discoveredCards;
@@ -83,7 +83,7 @@ const selectDiscoveredCard = (playerId, cardIndex) => {
     // 카드 추가
     const selectedCard = discovering[cardIndex];
     state.masterDeck.push(selectedCard);
-    state.drawPile.push(selectedCard);
+    state.toDraw.push(selectedCard);
     
     state.discovering = null;
     return {

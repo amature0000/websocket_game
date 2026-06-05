@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 
 const CONFIG = require('./config');
 const roomManager = require('./roomManager');
-const { normalizeAction, resolveAction } = require('./actionHandler');
+const resolveAction = require('./actionHandler');
 const deckManager = require('./deckManager');
 
 const app = express();
@@ -21,7 +21,7 @@ const sendToPlayer = (s, eventName, data) => {
 };
 
 const sendGameInfos = (roomId) => {
-  const room = roomManager.rooms[roomId];
+  const room = roomManager.getRoom(roomId);
   if (!room) return;
 
   const roomInfo = roomManager.getRoomInfo(roomId);
@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
 
     socket.join(roomId);
 
-    const room = roomManager.rooms[roomId];
+    const room = roomManager.getRoom(roomId);
     const isHost = room.turnOrder[0] === socket.id;
     sendToPlayer(socket, 'init_client', { isHost });
 
@@ -75,21 +75,20 @@ io.on('connection', (socket) => {
       return sendToPlayer(socket, 'system_message', result.message);
     }
 
-    const room = roomManager.rooms[roomId];
+    const room = roomManager.getRoom(roomId);
     broadcastToRoom(roomId, 'game_started');
     setTurn(room, roomId, room.currentPlayerId);
   });
 
   // 행동 처리
   socket.on('action', (roomId, actionPayload) => {
-    const room = roomManager.rooms[roomId];
+    const room = roomManager.getRoom(roomId);
     // 유효성 검사
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
       return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다.');
     }
     // 행동 처리
-    const action = normalizeAction(actionPayload);
-    const result = resolveAction(socket.id, action);
+    const result = resolveAction(socket.id, actionPayload);
 
     if (result === null) {
       return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다.");
@@ -118,7 +117,7 @@ io.on('connection', (socket) => {
     deckManager.removePlayer(socket.id);
     broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);
 
-    const room = roomManager.rooms[roomId];
+    const room = roomManager.getRoom(roomId);
     setTurn(room, roomId, nextPlayerId);
   });
 });
