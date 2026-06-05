@@ -1,7 +1,7 @@
 const { CARDS, getRandomCards, getCardById } = require('./cardData');
 const { getPlayer } = require('./roomManager');
 
-// [player] => { masterDeck, toDraw, hand, discovering }
+// [player] => { mainDeck, toDraw, hand, discovering }
 const playerDeckState = new Map();
 
 const initialDeck = [
@@ -82,7 +82,7 @@ const selectDiscoveredCard = (playerId, cardIndex) => {
     }
     // 카드 추가
     const selectedCard = discovering[cardIndex];
-    state.masterDeck.push(selectedCard);
+    state.mainDeck.push(selectedCard);
     state.toDraw.push(selectedCard);
     
     state.discovering = null;
@@ -121,7 +121,7 @@ const endTurn = (playerId) => {
     const state = playerDeckState.get(playerId);
     if (!state) return;
     state.hand = [];
-    state.toDraw = [...state.masterDeck];
+    state.toDraw = [...state.mainDeck];
 
     const player = getPlayer(playerId);
     if (player) {
@@ -145,7 +145,7 @@ const getPlayerCardInfo = (playerId) => {
 
     return {
         mainDeck: state.mainDeck, 
-        toDraw: [...initialDeck],
+        toDraw: state.toDraw,
         currentHand: state.hand,
         discoveringCards: state.discovering
     };

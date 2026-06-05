@@ -20,18 +20,18 @@ const sendToPlayer = (s, eventName, data) => {
   s.emit(eventName, data);
 };
 
-const sendGameInfos = (roomId) => {
-  const room = roomManager.getRoom(roomId);
-  if (!room) return;
-
+const sendGameInfos = (roomId, msg, action) => {
   const roomInfo = roomManager.getRoomInfo(roomId);
-  broadcastToRoom(roomId, 'room_info', roomInfo);
+  broadcastToRoom(roomId, msg, {
+      action: action,
+      roomInfo: roomInfo
+  });
+  console.log(roomInfo);
 };
 // playerId를 입력받는 이유: 현재 턴이 아닌 플레이어에게 정보를 넘겨야 해서
 const sendHandInfo = (playerId) => {
   const playerHand = deckManager.getPlayerCardInfo(playerId);
   io.to(playerId).emit('hand_info', playerHand);
-  console.log(playerHand);
 };
 // playerId를 입력받는 이유
 const setTurn = (room, roomId, playerId) => { 
@@ -41,7 +41,7 @@ const setTurn = (room, roomId, playerId) => {
   room.currentPlayerId = playerId;
   deckManager.drawCards(playerId, CONFIG.STARTING_HAND_SIZE);
   deckManager.discoverCards(playerId);
-  broadcastToRoom(roomId, 'turn_changed', playerId);
+  sendGameInfos(roomId, 'turn_changed', playerId);
   sendHandInfo(playerId);
 };
 
@@ -94,13 +94,8 @@ io.on('connection', (socket) => {
     if (result === null) {
       return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다.");
     }
-    // 액션 결과 브로드캐스트
-    const roomInfo = roomManager.getRoomInfo(roomId);
-    broadcastToRoom(roomId, 'action_result', {
-      action: result,
-      roomInfo: roomInfo
-    });
-    // hand info 업데이트
+    // 결과 전달
+    sendGameInfos(roomId, 'action_result', result);
     sendHandInfo(socket.id);
     // 턴 종료
     if (result.type === 'end_turn') {
