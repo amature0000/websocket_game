@@ -36,3 +36,10 @@
     2. 자신의 덱에 추가할 카드 3장이 제시되고(서버로부터 전달받음), 그 중 하나를 선택해 서버로 전달함
     3. 자신의 턴에 플레이어는 드로우한 카드를 사용 가능함. 사용한 카드는 버려지며, 이번 턴에 드로우되지 않음.
     4. 사용할 카드를 다 사용한 후, 턴 종료를 통해 다음 플레이어에게 턴을 넘김
+
+- flowchart
+```
+    server.action --> actionHandler.resolveAction --> actionHandler.playCardEffect
+    server.selectCard --> actionHandler.resolveAction --> actionHandler.handleSelectCard
+
+```

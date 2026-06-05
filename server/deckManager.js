@@ -98,7 +98,6 @@ const playCard = (playerId, handIndex) => {
     if (handIndex < 0 || handIndex >= hand.length) {
         return null;
     }
-
     // 손패에서 제거
     const playedCard = hand[handIndex];
     hand.splice(handIndex, 1);

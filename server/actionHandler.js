@@ -68,6 +68,11 @@ const playCardEffect = (actorId, playedCard, targetId) => {
   const actor = getPlayer(actorId);
   const target = getPlayer(targetId);
   if (!actor || !target) return null;
+  // pendingEffects 계산
+  if (actor.pendingEffects?.actor_discard) {
+    actor.pendingEffects.actor_discard -= 1;
+    return { success: true, type: 'discard_card', playedCard, actorId, targetId };
+  }
 
   const result = { success: true, type: 'play_card', playedCard, actorId, targetId };
 
@@ -111,13 +116,11 @@ const resolveAction = (actorId, action) => {
   switch (action.type) {
     case 'play_card': {
       const handIndex = action.handIndex;
-      if (handIndex == null) {
-        return null;
-      }
+      if (handIndex == null) return null;
+
       const playedCardResult = deckManager.playCard(actorId, handIndex);
-      if (playedCardResult === null) {
-        return null;
-      }
+      if (playedCardResult === null) return null;
+
       return playCardEffect(actorId, playedCardResult.card, action.targetId);
     }
     case 'select_card':
