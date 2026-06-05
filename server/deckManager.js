@@ -1,13 +1,8 @@
-const { CARDS, getRandomCards, getCardById } = require('./cardData');
+const { initialDeck, getRandomCards, getCardById } = require('./cardData');
 const { getPlayer } = require('./roomManager');
 
 // [player] => { mainDeck, toDraw, hand, discovering }
 const playerDeckState = new Map();
-
-const initialDeck = [
-    CARDS['atk_1'], CARDS['atk_1'], CARDS['atk_1'],
-    CARDS['def_1'], CARDS['def_1'], CARDS['def_1']
-];
 
 /**
  * 플레이어 초기화

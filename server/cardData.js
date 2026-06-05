@@ -22,6 +22,11 @@ const CARDS = {
   'draw': { id: 'draw', name: '공포탄', type: CARD_TYPES.SKILL, effect: { actor_draw: 2 }, description: '카드를 2장 뽑습니다.' }
 };
 
+const initialDeck = [
+  CARDS['atk_1'], CARDS['atk_1'], CARDS['atk_1'],
+  CARDS['def_1'], CARDS['def_1'], CARDS['def_1']
+]
+
 const getCardById = (cardId) => {
   return CARDS[cardId];
 };
@@ -41,8 +46,7 @@ const getRandomCards = (count) => {
 };
 
 module.exports = {
-  CARD_TYPES,
-  CARDS,
+  initialDeck,
   getCardById,
   getRandomCard,
   getRandomCards

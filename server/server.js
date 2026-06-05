@@ -26,7 +26,6 @@ const sendGameInfos = (roomId, msg, action) => {
       action: action,
       roomInfo: roomInfo
   });
-  console.log(roomInfo);
 };
 // playerId를 입력받는 이유: 현재 턴이 아닌 플레이어에게 정보를 넘겨야 해서
 const sendHandInfo = (playerId) => {
