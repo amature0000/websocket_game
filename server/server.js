@@ -31,6 +31,7 @@ const sendGameInfos = (roomId) => {
 const sendHandInfo = (playerId) => {
   const playerHand = deckManager.getPlayerCardInfo(playerId);
   io.to(playerId).emit('hand_info', playerHand);
+  console.log(playerHand);
 };
 // playerId를 입력받는 이유
 const setTurn = (room, roomId, playerId) => { 

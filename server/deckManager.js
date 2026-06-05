@@ -144,7 +144,8 @@ const getPlayerCardInfo = (playerId) => {
     if (!state) return null;
 
     return {
-        cardPool: state.masterDeck,
+        mainDeck: state.mainDeck, 
+        toDraw: [...initialDeck],
         currentHand: state.hand,
         discoveringCards: state.discovering
     };
