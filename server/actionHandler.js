@@ -26,8 +26,9 @@ const applyHeal = (player, amount) => {
   player.hp = Math.min(player.hp + amount, player.maxHp);
 };
 
-const applyEffects = (actor, target, effectObj) => {
+const applyEffects = (actor, target, effectObj, isHit) => {
   if (!effectObj) return;
+  if (effectObj.hit_only && isHit) return;
 
   if (effectObj.actor_defense != null) {
     applyDefense(actor, effectObj.actor_defense);
@@ -47,7 +48,7 @@ const applyEffects = (actor, target, effectObj) => {
     deckManager.drawCards(actor.id, effectObj.actor_draw);
   }
   if (effectObj.target_draw != null) {
-    target.pendingEffects.draw += effectObj.target_draw;
+    target.pendingEffects.draw = (target.pendingEffects.draw ?? 0) + effectObj.target_draw;
   }
 
   if (effectObj.actor_range != null) {
@@ -58,7 +59,7 @@ const applyEffects = (actor, target, effectObj) => {
   }
 
   if (effectObj.actor_discard != null) {
-    actor.pendingEffects.discard += effectObj.actor_discard;
+    actor.pendingEffects.discard = (actor.pendingEffects.discard ?? 0) + effectObj.actor_discard;
   }
 };
 
@@ -70,12 +71,12 @@ const playCard = (actorId, playedCard, targetId) => {
   if (!actor || !target) return null;
 
   // pendingEffects 계산
-  if (actor.pendingEffects.actor_discard) {
-    actor.pendingEffects.actor_discard -= 1;
-    return { success: true, type: 'discard_card', playedCard, actorId, targetId };
+  if (actor.pendingEffects.discard) {
+    actor.pendingEffects.discard -= 1;
+    return { success: true, type: 'discard_card', isHit: false, playedCard, actorId, targetId };
   }
 
-  const result = { success: true, type: 'play_card', playedCard, actorId, targetId };
+  const result = { success: true, type: 'play_card', isHit: true, playedCard, actorId, targetId };
 
   if (playedCard.type === 'ATTACK') {
     if (!targetId) return null;
@@ -88,9 +89,9 @@ const playCard = (actorId, playedCard, targetId) => {
       delete actor.pendingEffects.range;
     }
     // 명중률 계산
-    let hitRate = 1;
+    let hitRate = 1.0;
     if (distance > actorRange) {
-      hitRate = 1 - ((distance - actorRange) / distance);
+      hitRate = 1 - ((distance - actorRange) / (distance + 1));
     }
     // 명중 계산
     const isHit = Math.random() < hitRate;
@@ -100,8 +101,8 @@ const playCard = (actorId, playedCard, targetId) => {
     }
     result.isHit = isHit;
   }
-  if (playedCard.effect) {
-    applyEffects(actor, target, playedCard.effect);
+  if (playedCard.effect && result.isHit !== false) {
+    applyEffects(actor, target, playedCard.effect, result.isHit);
   }
 
   return result;

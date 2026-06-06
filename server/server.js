@@ -85,13 +85,13 @@ io.on('connection', (socket) => {
     const room = roomManager.getRoom(roomId);
     // 유효성 검사
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
-      return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다.');
+      return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다. - action 1');
     }
     // 행동 처리
     const result = resolveAction(socket.id, actionPayload);
 
     if (result === null) {
-      return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다.");
+      return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다. - action 2");
     }
     // 결과 전달
     sendGameInfos(roomId, 'action_result', result);

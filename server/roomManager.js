@@ -138,21 +138,6 @@ const isValidTurn = (room, playerId) => {
 };
 
 /***
- * 플레이어 거리 정보 반환
- */
-const getDistance = (playerId1, playerId2) => {
-  const room = rooms.get(getPlayer(playerId1)?.roomId);
-  if (!room) return null;
-
-  let idx1 = room.turnOrder.indexOf(playerId1);
-  let idx2 = room.turnOrder.indexOf(playerId2);
-  if (idx1 === -1 || idx2 === -1) return null;
-
-  const dist = Math.abs(idx1 - idx2);
-  return dist;
-};
-
-/***
  * 게임 정보 조회 - 플레이어 체력 등
  */
 const getRoomInfo = (roomId) => {
