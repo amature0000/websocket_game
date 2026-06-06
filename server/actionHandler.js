@@ -1,6 +1,6 @@
 // actionHandler.js
 const CONFIG = require('./config');
-const { getPlayer } = require('./roomManager');
+const { getPlayer, getDistance } = require('./roomManager');
 const deckManager = require('./deckManager');
 // ============
 
@@ -64,12 +64,13 @@ const applyEffects = (actor, target, effectObj) => {
 
 // ============
 
-const playCardEffect = (actorId, playedCard, targetId) => {
+const playCard = (actorId, playedCard, targetId) => {
   const actor = getPlayer(actorId);
   const target = getPlayer(targetId);
   if (!actor || !target) return null;
+
   // pendingEffects 계산
-  if (actor.pendingEffects?.actor_discard) {
+  if (actor.pendingEffects.actor_discard) {
     actor.pendingEffects.actor_discard -= 1;
     return { success: true, type: 'discard_card', playedCard, actorId, targetId };
   }
@@ -80,10 +81,24 @@ const playCardEffect = (actorId, playedCard, targetId) => {
     if (!targetId) return null;
     if (!target) return null;
 
-    // TODO: 명중률 보정 필요
-    // TODO: pendingEffects 계산
-    const damage = playedCard.value;
-    applyDamage(target, damage);
+    const distance = getDistance(actorId, targetId);
+    // pendingEffects 계산
+    const actorRange = actor.range + (actor.pendingEffects.range ?? actor.range);
+    if (actor.pendingEffects.range) {
+      delete actor.pendingEffects.range;
+    }
+    // 명중률 계산
+    let hitRate = 1;
+    if (distance > actorRange) {
+      hitRate = 1 - ((distance - actorRange) / distance);
+    }
+    // 명중 계산
+    const isHit = Math.random() < hitRate;
+    if (isHit) {
+      const damage = playedCard.value;
+      applyDamage(target, damage);
+    }
+    result.isHit = isHit;
   }
   if (playedCard.effect) {
     applyEffects(actor, target, playedCard.effect);
@@ -121,7 +136,7 @@ const resolveAction = (actorId, action) => {
       const playedCardResult = deckManager.playCard(actorId, handIndex);
       if (playedCardResult === null) return null;
 
-      return playCardEffect(actorId, playedCardResult.card, action.targetId);
+      return playCard(actorId, playedCardResult.card, action.targetId);
     }
     case 'select_card':
       return handleSelectCard(actorId, action);

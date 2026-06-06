@@ -28,9 +28,9 @@ const drawCards = (playerId, amount) => {
     if (!player) return [];
 
     // pendingEffects 계산
-    let drawAmount = amount + (player.pendingEffects?.draw ?? 0);
-    if (player.pendingEffects?.draw) {
-        delete player.pendingEffects.draw;
+    let drawAmount = amount + (player.pendingEffects.target_draw ?? 0);
+    if (player.pendingEffects.target_draw) {
+        delete player.pendingEffects.target_draw;
     }
 
     const state = playerDeckState.get(playerId);

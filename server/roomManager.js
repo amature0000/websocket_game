@@ -29,7 +29,9 @@ const createPlayer = (id, nickname, roomId) => ({
   hp: CONFIG.BASE_HP,
   maxHp: CONFIG.BASE_HP,
   defense: 0,
-  alive: true
+  range: 0,
+  alive: true,
+  pendingEffects: {}
 });
 
 /***
@@ -37,13 +39,13 @@ const createPlayer = (id, nickname, roomId) => ({
  */
 const addPlayer = (roomId, playerId, nickname) => {
   const room = rooms.get(roomId);
-  if (!room) return { success: false, message: '방이 존재하지 않습니다.' };
-  if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: '방이 가득 찼습니다.' };
+  if (!room) return { success: false, message: 'NO_ROOM' };
+  if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: 'MAX_ROOM' };
   
   if (globalUsers.has(playerId)) {
-    return { success: false, message: '이미 방에 참가 중입니다.' };
+    return { success: false, message: 'DUP_CHK' };
   }
-  if (!nickname || nickname.trim() === '') return { success: false, message: '닉네임을 입력해주세요.' };
+  if (!nickname || nickname.trim() === '') return { success: false, message: 'NO_NICK' };
   
   const newPlayer = createPlayer(playerId, nickname, roomId);
   room.players[playerId] = newPlayer;
@@ -59,13 +61,13 @@ const addPlayer = (roomId, playerId, nickname) => {
  */
 const startRoom = (roomId, hostId) => {
   const room = rooms.get(roomId);
-  if (!room) return { success: false, message: '방이 존재하지 않습니다.' };
-  if (room.isStarted) return { success: false, message: '이미 시작된 방입니다.' };
+  if (!room) return { success: false, message: 'NO_ROOM' };
+  if (room.isStarted) return { success: false, message: 'DUP_START' };
   if (room.turnOrder.length < CONFIG.MIN_PLAYERS) {
-    return { success: false, message: `게임은 적어도 ${CONFIG.MIN_PLAYERS}명이 모여야 시작할 수 있습니다.` };
+    return { success: false, message: `MIN_PLAYERS` };
   }
   if (room.turnOrder[0] !== hostId) {
-    return { success: false, message: '방장만 게임을 시작할 수 있습니다.' };
+    return { success: false, message: 'HOST_ONLY' };
   }
 
   room.isStarted = true;
@@ -86,12 +88,29 @@ const getRoom = (roomId) => {
 }
 
 /**
+ * 플레이어 거리 정보 반환
+ */
+const getDistance = (playerId1, playerId2) => {
+  const player1 = getPlayer(playerId1);
+  if (!player1) return null;
+  
+  const room = rooms.get(player1.roomId);
+  if (!room) return null;
+
+  const idx1 = room.turnOrder.indexOf(playerId1);
+  const idx2 = room.turnOrder.indexOf(playerId2);
+  if (idx1 === -1 || idx2 === -1) return null;
+
+  return Math.abs(idx1 - idx2);
+};
+
+/**
  * 다음 턴 플레이어 아이디 조회
  */
 const getNextTurnPlayerId = (room, fromPlayerId) => {
   if (!room || room.turnOrder.length === 0) return null;
 
-  const startIndex = room.turnOrder.findIndex((id) => id === fromPlayerId);
+  const startIndex = room.turnOrder.indexOf(fromPlayerId);
   if (startIndex === -1) return null;
   const total = room.turnOrder.length;
   return room.turnOrder[(startIndex + 1) % total];
@@ -116,6 +135,21 @@ const isValidTurn = (room, playerId) => {
   if (!currentId) return false;
   const player = getPlayer(playerId);
   return currentId === playerId && player?.alive;
+};
+
+/***
+ * 플레이어 거리 정보 반환
+ */
+const getDistance = (playerId1, playerId2) => {
+  const room = rooms.get(getPlayer(playerId1)?.roomId);
+  if (!room) return null;
+
+  let idx1 = room.turnOrder.indexOf(playerId1);
+  let idx2 = room.turnOrder.indexOf(playerId2);
+  if (idx1 === -1 || idx2 === -1) return null;
+
+  const dist = Math.abs(idx1 - idx2);
+  return dist;
 };
 
 /***
@@ -186,6 +220,7 @@ module.exports = {
   startRoom,
   getPlayer,
   getRoom,
+  getDistance,
   advanceTurn,
   isValidTurn,
   getRoomInfo,
