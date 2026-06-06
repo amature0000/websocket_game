@@ -37,6 +37,10 @@
     3. 자신의 턴에 플레이어는 드로우한 카드를 사용 가능함. 사용한 카드는 버려지며, 이번 턴에 드로우되지 않음.
     4. 사용할 카드를 다 사용한 후, 턴 종료를 통해 다음 플레이어에게 턴을 넘김
 
+8. 게임 종료
+    - 추가할거: 관전 중인 플레이어의 경우, turnOrder에 없어야 함; turnOrder를 현재 방안의 플레이어수로 취급하는 코드를 전부 수정하기
+    1. turnOrder에 한 명만 남은 경우 게임 종료
+    2. 게임 종료 메세지를 보내고 기존 필드 초기화; 방 상태를 대기방으로 변경해야 함
 - flowchart
 ```
     server.action --> actionHandler.resolveAction --> actionHandler.playCardEffect

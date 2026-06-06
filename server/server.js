@@ -103,7 +103,7 @@ io.on('connection', (socket) => {
       setTurn(room, roomId, nextPlayerId);
     }
   });
-
+  // TODO: 게임 종료 로직 추가
   // 연결 종료
   socket.on('disconnect', () => {
     console.log(`유저 퇴장: ${socket.id}`);

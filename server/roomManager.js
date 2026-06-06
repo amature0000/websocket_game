@@ -192,6 +192,7 @@ const removePlayer = (playerId) => {
     return null;
   }
   // 플레이어가 한 명 남았다면 방 삭제
+  // TODO: 게임 종료 로직 관련 구현, 관전 플레이어를 위해 turnOrder 대신 새로운 방법 추가
   if (room.turnOrder.length <= 1) {
     globalUsers.delete(playerId);
     rooms.delete(roomId);
