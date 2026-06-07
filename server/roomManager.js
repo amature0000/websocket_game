@@ -107,23 +107,13 @@ const getDistance = (playerId1, playerId2) => {
 /**
  * 다음 턴 플레이어 아이디 조회
  */
-const getNextTurnPlayerId = (room, fromPlayerId) => {
+const getNextTurnPlayerId = (room) => {
   if (!room || room.turnOrder.length === 0) return null;
 
-  const startIndex = room.turnOrder.indexOf(fromPlayerId);
+  const startIndex = room.turnOrder.indexOf(room.currentPlayerId);
   if (startIndex === -1) return null;
   const total = room.turnOrder.length;
   return room.turnOrder[(startIndex + 1) % total];
-};
-
-/**
- * 턴 진행
- */
-const advanceTurn = (room) => {
-  if (!room || room.turnOrder.length === 0) return null;
-  const currentPlayerId = room.currentPlayerId;
-  const nextPlayerId = getNextTurnPlayerId(room, currentPlayerId);
-  return nextPlayerId;
 };
 
 /**
@@ -207,7 +197,7 @@ module.exports = {
   getPlayer,
   getRoom,
   getDistance,
-  advanceTurn,
+  getNextTurnPlayerId,
   isValidTurn,
   getRoomInfo,
   removePlayer

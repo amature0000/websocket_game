@@ -87,21 +87,19 @@ io.on('connection', (socket) => {
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
       return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다. - action 1');
     }
+    // 턴 종료 로직
+    if (actionPayload.type === 'end_turn') {
+      deckManager.endTurn(socket.id);
+      return setTurn(room, roomId, roomManager.getNextTurnPlayerId(room));
+    }
     // 행동 처리
     const result = resolveAction(socket.id, actionPayload);
-
     if (result === null) {
       return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다. - action 2");
     }
     // 결과 전달
     sendGameInfos(roomId, 'action_result', result);
     sendHandInfo(socket.id);
-    // 턴 종료
-    if (result.type === 'end_turn') {
-      deckManager.endTurn(socket.id);
-      const nextPlayerId = roomManager.advanceTurn(room);
-      setTurn(room, roomId, nextPlayerId);
-    }
   });
   // TODO: 게임 종료 로직 추가
   // 연결 종료

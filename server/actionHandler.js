@@ -73,10 +73,10 @@ const playCard = (actorId, playedCard, targetId) => {
   // pendingEffects 계산
   if (actor.pendingEffects.discard) {
     actor.pendingEffects.discard -= 1;
-    return { success: true, type: 'discard_card', isHit: false, playedCard, actorId, targetId };
+    return { success: true, type: 'discard_card', playedCard, actorId, targetId };
   }
 
-  const result = { success: true, type: 'play_card', isHit: true, playedCard, actorId, targetId };
+  const result = { success: true, type: 'play_card', playedCard, actorId, targetId };
 
   if (playedCard.type === 'ATTACK') {
     if (!targetId) return null;
@@ -89,20 +89,20 @@ const playCard = (actorId, playedCard, targetId) => {
       delete actor.pendingEffects.range;
     }
     // 명중률 계산
-    let hitRate = 1.0;
+    let hitRa
+    te = 1.0;
     if (distance > actorRange) {
       hitRate = 1 - ((distance - actorRange) / (distance + 1));
     }
     // 명중 계산
     const isHit = Math.random() < hitRate;
     if (isHit) {
-      const damage = playedCard.value;
-      applyDamage(target, damage);
+      applyDamage(target, playedCard.value);
     }
-    result.isHit = isHit;
+    result.success = isHit;
   }
-  if (playedCard.effect && result.isHit !== false) {
-    applyEffects(actor, target, playedCard.effect, result.isHit);
+  if (playedCard.effect) {
+    applyEffects(actor, target, playedCard.effect, result.success);
   }
 
   return result;
@@ -141,8 +141,8 @@ const resolveAction = (actorId, action) => {
     }
     case 'select_card':
       return handleSelectCard(actorId, action);
-    case 'end_turn':
-      return { success: true, type: 'end_turn', actorId };
+    // case 'end_turn':
+    //   return { success: true, type: 'end_turn', actorId };
     default:
       return null;
   }
