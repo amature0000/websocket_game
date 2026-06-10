@@ -9,12 +9,10 @@ const globalUsers = new Map();
 const initRoom = (roomId) => {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, {
-      players: {},
-      turnOrder: [],
-      currentPlayerId: null,
-      isStarted: false,
-      alive: true,
-      pendingEffects: {}
+      playersId: [], // 접속중인 플레이어 ID
+      turnOrder: [], // 접속중인 플레이어 ID (alive)
+      currentPlayerId: null, // 현재 턴인 플레이어 ID
+      isStarted: false
     });
   }
 };
@@ -30,7 +28,6 @@ const createPlayer = (id, nickname, roomId) => ({
   maxHp: CONFIG.BASE_HP,
   defense: 0,
   range: 0,
-  alive: true,
   pendingEffects: {}
 });
 
@@ -40,6 +37,7 @@ const createPlayer = (id, nickname, roomId) => ({
 const addPlayer = (roomId, playerId, nickname) => {
   const room = rooms.get(roomId);
   if (!room) return { success: false, message: 'NO_ROOM' };
+  if (room.isStarted) return { success: false, message: 'LATE' };
   if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: 'MAX_ROOM' };
   
   if (globalUsers.has(playerId)) {
@@ -48,9 +46,9 @@ const addPlayer = (roomId, playerId, nickname) => {
   if (!nickname || nickname.trim() === '') return { success: false, message: 'NO_NICK' };
   
   const newPlayer = createPlayer(playerId, nickname, roomId);
-  room.players[playerId] = newPlayer;
   globalUsers.set(playerId, newPlayer);
   
+  room.playersId.push(playerId);
   room.turnOrder.push(playerId);
   console.log(`[방 ${roomId}] 플레이어 등록: ${playerId} (닉네임: ${nickname})`);
 
@@ -83,6 +81,9 @@ const getPlayer = (playerId) => {
   return globalUsers.get(playerId) || null;
 };
 
+/***
+ * id로 방 조회
+ */
 const getRoom = (roomId) => {
   return rooms.get(roomId) || null;
 }
@@ -121,10 +122,7 @@ const getNextTurnPlayerId = (room) => {
  */
 const isValidTurn = (room, playerId) => {
   if (!room || !room.isStarted || !playerId) return false;
-  const currentId = room.currentPlayerId;
-  if (!currentId) return false;
-  const player = getPlayer(playerId);
-  return currentId === playerId && player?.alive;
+  return room.currentPlayerId === playerId && room.turnOrder.includes(playerId);
 };
 
 /***
@@ -135,14 +133,13 @@ const getRoomInfo = (roomId) => {
   if (!room) return null;
   
   const playersInfo = room.turnOrder.map(playerId => {
-    const player = room.players[playerId];
+    const player = globalUsers.get(playerId);
     return {
       id: player.id,
       name: player.name,
       hp: player.hp,
       maxHp: player.maxHp,
-      defense: player.defense,
-      alive: player.alive
+      defense: player.defense
     };
   });
 
@@ -159,34 +156,34 @@ const removePlayer = (playerId) => {
   const player = globalUsers.get(playerId);
   if (!player) return null;
   
-  const roomId = player.roomId;
-  const room = rooms.get(roomId);
-  // 방이 없으면 유저 정보 삭제
+  const room = rooms.get(player.roomId);
   if (!room) {
     globalUsers.delete(playerId);
     return null;
   }
-  // 플레이어가 한 명 남았다면 방 삭제
-  // TODO: 게임 종료 로직 관련 구현, 관전 플레이어를 위해 turnOrder 대신 새로운 방법 추가
-  if (room.turnOrder.length <= 1) {
-    globalUsers.delete(playerId);
+  // 플레이어 제거 전 턴 처리
+  let nextPlayerId = null;
+  if (room.currentPlayerId === playerId) {
+    nextPlayerId = getNextTurnPlayerId(room);
+    room.currentPlayerId = nextPlayerId;
+  }
+  // 플레이어 제거
+  globalUsers.delete(playerId);
+  room.turnOrder = room.turnOrder.filter(id => id !== playerId);
+
+  const currentPlayersIdIndex = room.playersId.indexOf(playerId);
+  if (currentPlayersIdIndex !== -1) {
+    room.playersId[currentPlayersIdIndex] = room.playersId[room.playersId.length - 1];
+    room.playersId.pop();
+  }
+
+  console.log(`[방 ${roomId}] 플레이어 제거: ${playerId}`);
+  // 플레이어가 없으면 방 삭제
+  if (room.turnOrder.length < 1) {
     rooms.delete(roomId);
     console.log(`[방 ${roomId}] 삭제됨`);
     return null;
   }
-  // 플레이어 제거 전 턴 처리
-  const removedCurrent = room.currentPlayerId === playerId;
-  let nextPlayerId = null;
-  if (removedCurrent) {
-    nextPlayerId = getNextTurnPlayerId(room, playerId);
-    room.currentPlayerId = nextPlayerId;
-  }
-  // 플레이어 제거
-  console.log(`[방 ${roomId}] 플레이어 제거: ${playerId} (현재 인원: ${room.turnOrder.length})`);
-  room.turnOrder = room.turnOrder.filter(id => id !== playerId);
-  delete room.players[playerId];
-  globalUsers.delete(playerId);
-
   return nextPlayerId;
 };
 

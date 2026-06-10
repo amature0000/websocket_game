@@ -9,10 +9,7 @@ const applyDamage = (player, amount) => {
   const dmg = Math.max(amount - player.defense, 0);
   player.defense = Math.max(player.defense - amount, 0);
   player.hp = Math.max(player.hp - dmg, 0);
-
-  if (player.hp === 0) {
-    player.alive = false;
-  }
+  // TODO: 체력 0일때 turnOrder에서 제거
 };
 
 const applyDefense = (player, amount) => {
