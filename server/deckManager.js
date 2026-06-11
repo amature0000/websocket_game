@@ -81,10 +81,7 @@ const selectDiscoveredCard = (playerId, cardIndex) => {
     state.toDraw.push(selectedCard);
     
     state.discovering = null;
-    return {
-        success: true,
-        card: selectedCard
-    };
+    return selectedCard;
 };
 
 /**
@@ -102,10 +99,7 @@ const playCard = (playerId, handIndex) => {
     const playedCard = hand[handIndex];
     hand.splice(handIndex, 1);
 
-    return {
-        success: true,
-        card: playedCard
-    };
+    return playedCard;
 };
 
 /**

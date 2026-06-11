@@ -62,10 +62,14 @@ const applyEffects = (actor, target, effectObj, isHit) => {
 
 // ============
 
-const playCard = (actorId, playedCard, targetId) => {
+const playCard = (actorId, handIndex, targetId) => {
   const actor = getPlayer(actorId);
   const target = getPlayer(targetId);
   if (!actor || !target) return null;
+  if (actor.roomId !== target.roomId) return null;
+
+  const playedCard = deckManager.playCard(actorId, handIndex);
+  if (playedCard === null) return null;
 
   // pendingEffects 계산
   if (actor.pendingEffects.discard) {
@@ -86,8 +90,7 @@ const playCard = (actorId, playedCard, targetId) => {
       delete actor.pendingEffects.range;
     }
     // 명중률 계산
-    let hitRa
-    te = 1.0;
+    let hitRate = 1.0;
     if (distance > actorRange) {
       hitRate = 1 - ((distance - actorRange) / (distance + 1));
     }
@@ -111,9 +114,9 @@ const handleSelectCard = (actorId, action) => {
     return null;
   }
 
-  const result = deckManager.selectDiscoveredCard(actorId, cardIndex);
+  const selectedCard = deckManager.selectDiscoveredCard(actorId, cardIndex);
 
-  if (result === null) {
+  if (selectedCard === null) {
     return null;
   }
 
@@ -121,25 +124,18 @@ const handleSelectCard = (actorId, action) => {
     success: true,
     type: 'select_card',
     actorId,
-    card: result.card
+    card: selectedCard
   };
 };
 
 const resolveAction = (actorId, action) => {
   switch (action.type) {
     case 'play_card': {
-      const handIndex = action.handIndex;
-      if (handIndex == null) return null;
-
-      const playedCardResult = deckManager.playCard(actorId, handIndex);
-      if (playedCardResult === null) return null;
-
-      return playCard(actorId, playedCardResult.card, action.targetId);
+      if (action.handIndex == null) return null;
+      return playCard(actorId, action.handIndex, action.targetId);
     }
     case 'select_card':
       return handleSelectCard(actorId, action);
-    // case 'end_turn':
-    //   return { success: true, type: 'end_turn', actorId };
     default:
       return null;
   }

@@ -38,9 +38,23 @@
     4. 사용할 카드를 다 사용한 후, 턴 종료를 통해 다음 플레이어에게 턴을 넘김
 
 8. 게임 종료
-    - 추가할거: 관전 중인 플레이어의 경우, turnOrder에 없어야 함; turnOrder를 현재 방안의 플레이어수로 취급하는 코드를 전부 수정하기
     1. turnOrder에 한 명만 남은 경우 게임 종료
     2. 게임 종료 메세지를 보내고 기존 필드 초기화; 방 상태를 대기방으로 변경해야 함
+
+- 활성 플레이어 디컨 시나리오
+1. 게임 진행 중이던 플레이어가 게임 종료
+2. server.js에서 roomManager / deckManager의 removePlayer 호출
+3. roomManager.js에서 해당하는 globalUser, room 데이터를 삭제 -> 만약 turnOrder가 비었다면 room도 삭제
+4. 마지막 활성 플레이어였다면, 이후 roomManager.getRoom에서 null값을 반환받고 방에 접속중인 모든 플레이어 강제 디컨
+5. 만약 자신의 턴에 종료했다면, roomManager.removePlayer의 반환값으로 전달받은 다음 플레이어에게 setTurn 호출
+
+- 관전 플레이어 디컨 시나리오
+1. 관전 중이던 플레이어가 위의 로직에 의해 강제 디컨 -> roomManager.room은 null이지만, globalUsers 데이터는 살아있음
+2. server.js에서 roomManager의 removePlayer 호출
+3. roomManager.js에서 room이 null이므로 globalUsers를 삭제하고 리턴
+4. server.js에서 deckManager의 removePlayer 호출
+5. 이후 roomNager.getRoom에서 null값을 반환받고 함수 종료
+
 - flowchart
 ```
     server.action --> actionHandler.resolveAction --> actionHandler.playCardEffect

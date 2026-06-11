@@ -87,6 +87,7 @@ io.on('connection', (socket) => {
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
       return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다. - action 1');
     }
+    // TODO: 게임 종료 로직 추가
     // 턴 종료 로직
     if (actionPayload.type === 'end_turn') {
       deckManager.endTurn(socket.id);
@@ -101,18 +102,23 @@ io.on('connection', (socket) => {
     sendGameInfos(roomId, 'action_result', result);
     sendHandInfo(socket.id);
   });
-  // TODO: 게임 종료 로직 추가
   // 연결 종료
   socket.on('disconnect', () => {
     console.log(`유저 퇴장: ${socket.id}`);
     const roomId = roomManager.getPlayer(socket.id)?.roomId;
+    if (!roomId) return;
+
     const nextPlayerId = roomManager.removePlayer(socket.id);
     deckManager.removePlayer(socket.id);
     broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);
 
     const room = roomManager.getRoom(roomId);
+    if (!room) {
+      io.in(roomId).disconnectSockets(true);
+      return;
+    }
     setTurn(room, roomId, nextPlayerId);
-  });
+  }); 
 });
 
 // ====================

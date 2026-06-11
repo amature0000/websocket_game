@@ -38,7 +38,7 @@ const addPlayer = (roomId, playerId, nickname) => {
   const room = rooms.get(roomId);
   if (!room) return { success: false, message: 'NO_ROOM' };
   if (room.isStarted) return { success: false, message: 'LATE' };
-  if (room.turnOrder.length >= CONFIG.MAX_PLAYERS) return { success: false, message: 'MAX_ROOM' };
+  if (room.playersId.length >= CONFIG.MAX_PLAYERS) return { success: false, message: 'MAX_ROOM' };
   
   if (globalUsers.has(playerId)) {
     return { success: false, message: 'DUP_CHK' };
@@ -61,7 +61,7 @@ const startRoom = (roomId, hostId) => {
   const room = rooms.get(roomId);
   if (!room) return { success: false, message: 'NO_ROOM' };
   if (room.isStarted) return { success: false, message: 'DUP_START' };
-  if (room.turnOrder.length < CONFIG.MIN_PLAYERS) {
+  if (room.playersId.length < CONFIG.MIN_PLAYERS) {
     return { success: false, message: `MIN_PLAYERS` };
   }
   if (room.turnOrder[0] !== hostId) {
@@ -113,8 +113,7 @@ const getNextTurnPlayerId = (room) => {
 
   const startIndex = room.turnOrder.indexOf(room.currentPlayerId);
   if (startIndex === -1) return null;
-  const total = room.turnOrder.length;
-  return room.turnOrder[(startIndex + 1) % total];
+  return room.turnOrder[(startIndex + 1) % room.turnOrder.length];
 };
 
 /**
@@ -164,20 +163,20 @@ const removePlayer = (playerId) => {
   // 플레이어 제거 전 턴 처리
   let nextPlayerId = null;
   if (room.currentPlayerId === playerId) {
-    nextPlayerId = getNextTurnPlayerId(room);
-    room.currentPlayerId = nextPlayerId;
+    room.currentPlayerId = getNextTurnPlayerId(room);
   }
   // 플레이어 제거
   globalUsers.delete(playerId);
-  room.turnOrder = room.turnOrder.filter(id => id !== playerId);
-
-  const currentPlayersIdIndex = room.playersId.indexOf(playerId);
-  if (currentPlayersIdIndex !== -1) {
-    room.playersId[currentPlayersIdIndex] = room.playersId[room.playersId.length - 1];
+  if (room.turnOrder.includes(playerId)) {
+    room.turnOrder = room.turnOrder.filter(id => id !== playerId);
+  }
+  const playerIdIndex = room.playersId.indexOf(playerId);
+  if (playerIdIndex !== -1) {
+    room.playersId[playerIdIndex] = room.playersId[room.playersId.length - 1];
     room.playersId.pop();
   }
 
-  console.log(`[방 ${roomId}] 플레이어 제거: ${playerId}`);
+  console.log(`[방 ${player.roomId}] 플레이어 제거: ${playerId}`);
   // 플레이어가 없으면 방 삭제
   if (room.turnOrder.length < 1) {
     rooms.delete(roomId);
