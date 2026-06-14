@@ -64,7 +64,7 @@ io.on('connection', (socket) => {
     sendToPlayer(socket, 'init_client', { isHost });
 
     const player = roomManager.getPlayer(socket.id);
-    broadcastToRoom(roomId, 'system_message', `${player.name} 님이 입장했습니다. (${room.turnOrder.length}명)`);
+    sendGameInfos(roomId, `${player.name} 님이 입장했습니다.`, 'join_room');
   });
 
   // 게임 시작
@@ -87,14 +87,20 @@ io.on('connection', (socket) => {
     if (!room || !roomManager.isValidTurn(room, socket.id)) {
       return sendToPlayer(socket, 'system_message', '유효하지 않은 행동입니다. - action 1');
     }
-    // TODO: 게임 종료 로직 추가
+    // 행동 처리
+    const result = resolveAction(socket.id, actionPayload);
+    // 게임 종료 검사
+    if (room.turnOrder.length === 1) {
+      const winner = roomManager.getPlayer(room.turnOrder[0]);
+      roomManager.resetRoom(roomId);
+      sendGameInfos(roomId, `${winner.name} 님이 승리했습니다!`, 'game_ended');
+      return;
+    }
     // 턴 종료 로직
     if (actionPayload.type === 'end_turn') {
       deckManager.endTurn(socket.id);
       return setTurn(room, roomId, roomManager.getNextTurnPlayerId(room));
     }
-    // 행동 처리
-    const result = resolveAction(socket.id, actionPayload);
     if (result === null) {
       return sendToPlayer(socket, 'system_message', "유효하지 않은 행동입니다. - action 2");
     }
@@ -105,12 +111,14 @@ io.on('connection', (socket) => {
   // 연결 종료
   socket.on('disconnect', () => {
     console.log(`유저 퇴장: ${socket.id}`);
-    const roomId = roomManager.getPlayer(socket.id)?.roomId;
+    const player = roomManager.getPlayer(socket.id);
+    if (!player) return;
+    const roomId = player.roomId;
     if (!roomId) return;
 
-    const nextPlayerId = roomManager.removePlayer(socket.id);
+    const nextPlayerId = roomManager.removePlayer(socket.id); // null 일 수 있음
     deckManager.removePlayer(socket.id);
-    broadcastToRoom(roomId, 'system_message', `${socket.id} 님이 퇴장했습니다.`);
+    sendGameInfos(roomId, `${player.name} 님이 퇴장했습니다.`, 'quit_room');
 
     const room = roomManager.getRoom(roomId);
     if (!room) {

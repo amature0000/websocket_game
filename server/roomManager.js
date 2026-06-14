@@ -39,15 +39,15 @@ const addPlayer = (roomId, playerId, nickname) => {
   if (!room) return { success: false, message: 'NO_ROOM' };
   if (room.isStarted) return { success: false, message: 'LATE' };
   if (room.playersId.length >= CONFIG.MAX_PLAYERS) return { success: false, message: 'MAX_ROOM' };
-  
+
   if (globalUsers.has(playerId)) {
     return { success: false, message: 'DUP_CHK' };
   }
   if (!nickname || nickname.trim() === '') return { success: false, message: 'NO_NICK' };
-  
+
   const newPlayer = createPlayer(playerId, nickname, roomId);
   globalUsers.set(playerId, newPlayer);
-  
+
   room.playersId.push(playerId);
   room.turnOrder.push(playerId);
   console.log(`[방 ${roomId}] 플레이어 등록: ${playerId} (닉네임: ${nickname})`);
@@ -94,7 +94,7 @@ const getRoom = (roomId) => {
 const getDistance = (playerId1, playerId2) => {
   const player1 = getPlayer(playerId1);
   if (!player1) return null;
-  
+
   const room = rooms.get(player1.roomId);
   if (!room) return null;
 
@@ -130,17 +130,14 @@ const isValidTurn = (room, playerId) => {
 const getRoomInfo = (roomId) => {
   const room = rooms.get(roomId);
   if (!room) return null;
-  
-  const playersInfo = room.turnOrder.map(playerId => {
-    const player = globalUsers.get(playerId);
-    return {
-      id: player.id,
-      name: player.name,
-      hp: player.hp,
-      maxHp: player.maxHp,
-      defense: player.defense
-    };
-  });
+
+  const playersInfo = room.playersId.map(playerId => {
+      const player = globalUsers.get(playerId);
+      if (!player) return null;
+
+      const { id, name, hp, maxHp, defense } = player;
+      return { id, name, hp, maxHp, defense };
+    }).filter(Boolean);
 
   return {
     roomId,
@@ -151,10 +148,21 @@ const getRoomInfo = (roomId) => {
   };
 };
 
+const killPlayer = (playerId) => {
+  const player = globalUsers.get(playerId);
+  if (!player) return;
+
+  const room = rooms.get(player.roomId);
+  if (!room) return;
+  // turnOrder에서 제거
+  room.turnOrder = room.turnOrder.filter(id => id !== playerId);
+  console.log(`[방 ${room.roomId}] 플레이어 사망: ${playerId}`);
+}
+
 const removePlayer = (playerId) => {
   const player = globalUsers.get(playerId);
   if (!player) return null;
-  
+
   const room = rooms.get(player.roomId);
   if (!room) {
     globalUsers.delete(playerId);
@@ -170,21 +178,35 @@ const removePlayer = (playerId) => {
   if (room.turnOrder.includes(playerId)) {
     room.turnOrder = room.turnOrder.filter(id => id !== playerId);
   }
-  const playerIdIndex = room.playersId.indexOf(playerId);
-  if (playerIdIndex !== -1) {
-    room.playersId[playerIdIndex] = room.playersId[room.playersId.length - 1];
-    room.playersId.pop();
-  }
+  room.playersId = room.playersId.filter(id => id !== playerId);
 
   console.log(`[방 ${player.roomId}] 플레이어 제거: ${playerId}`);
   // 플레이어가 없으면 방 삭제
+  console.log(rooms);
   if (room.turnOrder.length < 1) {
-    rooms.delete(roomId);
-    console.log(`[방 ${roomId}] 삭제됨`);
+    rooms.delete(player.roomId);
+    console.log(`[방 ${player.roomId}] 삭제됨`);
     return null;
   }
   return nextPlayerId;
 };
+
+const resetRoom = (roomId) => {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  room.turnOrder = room.playersId.slice();
+  room.currentPlayerId = room.turnOrder[0];
+  room.isStarted = false;
+  room.playersId.forEach(playerId => {
+    const player = globalUsers.get(playerId);
+    if (player) {
+      player.hp = CONFIG.BASE_HP;
+      player.defense = 0;
+      player.range = 0;
+      player.pendingEffects = {};
+    }
+  });
+}
 
 module.exports = {
   initRoom,
@@ -196,5 +218,7 @@ module.exports = {
   getNextTurnPlayerId,
   isValidTurn,
   getRoomInfo,
-  removePlayer
+  removePlayer,
+  killPlayer,
+  resetRoom
 };

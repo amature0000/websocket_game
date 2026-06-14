@@ -1,6 +1,6 @@
 // actionHandler.js
 const CONFIG = require('./config');
-const { getPlayer, getDistance } = require('./roomManager');
+const { getPlayer, getDistance, killPlayer } = require('./roomManager');
 const deckManager = require('./deckManager');
 // ============
 
@@ -9,7 +9,7 @@ const applyDamage = (player, amount) => {
   const dmg = Math.max(amount - player.defense, 0);
   player.defense = Math.max(player.defense - amount, 0);
   player.hp = Math.max(player.hp - dmg, 0);
-  // TODO: 체력 0일때 turnOrder에서 제거
+  if (player.hp === 0) killPlayer(player.id);
 };
 
 const applyDefense = (player, amount) => {
